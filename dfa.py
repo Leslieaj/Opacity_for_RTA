@@ -1,7 +1,49 @@
 # build a kind of DFA which moves the guards of RTA into the labels
 
 import copy
+from enum import IntEnum
 from rta import *
+
+class Bracket(IntEnum):
+    """
+    Left Open, Left Closed, Right Open, Right Closed.
+    """
+    RO = 1
+    LC = 2
+    RC = 3
+    LO = 4
+
+class BracketNum:
+    def __init__(self, value="", bracket=0):
+        self.value = value
+        self.bracket = bracket
+    def __eq__(self, bn):
+        if self.value == bn.value and self.bracket == bn.bracket:
+            return True
+        else:
+            return False
+    def __lt__(self, bn):
+        if int(self.value) > int(bn.value):
+            return False
+        elif int(self.value) < int(bn.value):
+            return True
+        else:
+            if self.bracket < bn.bracket:
+                return True
+            else:
+                return False
+    def complement(self):
+        temp_value = self.value
+        temp_bracket = None
+        if self.bracket == Bracket.LC:
+            temp_bracket = Bracket.RO
+        if self.bracket == Bracket.RC:
+            temp_bracket = Bracket.LO
+        if self.bracket == Bracket.LO:
+            temp_bracket = Bracket.RC
+        if self.bracket == Bracket.RO:
+            temp_bracket = Bracket.LC
+        return BracketNum(temp_value, temp_bracket)
 
 class TimedLabel:
     name = ""
@@ -106,10 +148,7 @@ def alphabet_classify(timed_alphabet, sigma):
                 temp_set[label].append(timed_label)
     return temp_set  
 
-def alphabet_partition(timed_alphabet):
-    for key in timed_alphabet:
-        timed_labels = timed_alphabet[key]
-        for timed_labels
+
 def main():
     A = buildRTA("a.json")
     A.show()
@@ -126,6 +165,10 @@ def main():
     B_secret.show()
     for timed_label in B_secret.timed_alphabet["b"]:
         print timed_label.get_timedlabel()
+    
+    bn1 = BracketNum("1", Bracket.LC)
+    bn2 = BracketNum("1", Bracket.LO)
+    print bn1 < bn2
     """print rta.name
     for s in rta.states:
         print s.name, s.init, s.accept
