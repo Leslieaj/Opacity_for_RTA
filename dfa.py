@@ -23,6 +23,10 @@ class BracketNum:
         else:
             return False
     def __lt__(self, bn):
+        if self.value == '+':
+            return False
+        if bn.value == '+':
+            return True
         if int(self.value) > int(bn.value):
             return False
         elif int(self.value) < int(bn.value):
@@ -33,6 +37,10 @@ class BracketNum:
             else:
                 return False
     def complement(self):
+        if self.value == '+':
+            return BracketNum('+', Bracket.RO)  #ceil
+        if self.value == '0' and self.bracket == Bracket.LC:
+            return BracketNum('0', Bracket.LC)  #floor
         temp_value = self.value
         temp_bracket = None
         if self.bracket == Bracket.LC:
@@ -44,6 +52,17 @@ class BracketNum:
         if self.bracket == Bracket.RO:
             temp_bracket = Bracket.LC
         return BracketNum(temp_value, temp_bracket)
+    
+    def getbn(self):
+        temp_value = self.value
+        if self.bracket == Bracket.LC:
+            return '[' + self.value
+        if self.bracket == Bracket.LO:
+            return '(' + self.value
+        if self.bracket == Bracket.RC:
+            return self.value + ']'
+        if self.bracket == Bracket.RO:
+            return self.value + ')'
 
 class TimedLabel:
     name = ""
@@ -64,7 +83,7 @@ class DFATran:
     id = None
     source = ""
     target = ""
-    label = None
+    timedlabel = None
     def __init__(self, id, source="", target="", label=None):
         self.id = id
         self.source = source
@@ -74,7 +93,7 @@ class DFATran:
 class DFA:
     name = ""
     #timed_alphabet = None
-    timed_alphabet = set()
+    timed_alphabet = {}
     states = None
     trans = []
     initstate_name = ""
@@ -148,7 +167,113 @@ def alphabet_classify(timed_alphabet, sigma):
                 temp_set[label].append(timed_label)
     return temp_set  
 
+def alphabet_partition(classified_alphabet):
+    floor_bn = BracketNum('0',Bracket.LC)
+    ceil_bn = BracketNum('+',Bracket.RO)
+    partitioned_alphabet = {}
+    bnlist_dict = {}
+    for key in classified_alphabet:
+        partitioned_alphabet[key] = []
+        timedlabel_list = classified_alphabet[key]
+        key_bns = []
+        key_bnsc = []
+        for timedlabel in timedlabel_list:
+            temp_constraints = timedlabel.constraints
+            for constraint in temp_constraints:
+                min_bn = None
+                max_bn = None
+                temp_min = constraint.min_value
+                temp_minb = None
+                if constraint.closed_min == True:
+                    temp_minb = Bracket.LC
+                else:
+                    temp_minb = Bracket.LO
+                temp_max = constraint.max_value
+                temp_maxb = None
+                if constraint.closed_max == True:
+                    temp_maxb = Bracket.RC
+                else:
+                    temp_maxb = Bracket.RO
+                min_bn = BracketNum(temp_min, temp_minb)
+                max_bn = BracketNum(temp_max, temp_maxb)
+                if min_bn not in key_bns:
+                    key_bns+= [min_bn]
+                if max_bn not in key_bns:
+                    key_bns+=[max_bn]
+        #print("------------------------------------")
+        #for i in key_bns:
+            #print key, i.getbn()
+        key_bnsc = copy.deepcopy(key_bns)
+        for bn in key_bns:
+            bnc = bn.complement()
+            if bnc not in key_bnsc:
+                key_bnsc.append(bnc)
+        if floor_bn not in key_bnsc:
+            key_bnsc.append(floor_bn)
+        if ceil_bn not in key_bnsc:
+            key_bnsc.append(ceil_bn)
+        key_bnsc.sort()
+        bnlist_dict[key] = key_bnsc
+        for index in range(len(key_bnsc)):
+            if index%2 == 0:
+                temp_constraint = Constraint(key_bnsc[index].getbn()+','+key_bnsc[index+1].getbn())
+                temp_timedlabel = TimedLabel("",key, [temp_constraint])
+                partitioned_alphabet[key].append(temp_timedlabel)
+    return partitioned_alphabet, bnlist_dict
 
+def alphabet_combine(alphabet1, alphabet2):
+    """
+    They have same simple alphabet.
+    """
+    combined_alphabet = {} 
+    for key in alphabet1:
+        combined_alphabet[key] = alphabet1[key] + alphabet2[key]
+    return combined_alphabet
+
+class RefinedDFA:
+    name = ""
+    timed_alphabet = {}
+    states = None
+    trans = []
+    initstate_name = ""
+    accept_names = []
+    def __init__(self, dfa=None, partition_alphabet=None, bnlist_dict=None):
+        self.name = "Refined_"+dfa.name
+        self.timed_alphabet = partition_alphabet
+        self.states = dfa.states
+        self.initstate_name = ""
+        self.trans = self.__buildtrans(dfa, bnlist_dict)
+    def __buildtrans(self, dfa, bnlist_dict):
+        for tran in dfa.trans:
+            temp_timedlabel = tran.timedlabel
+            temp_constraints = temp_timedlabel.constraints
+            temp_left = 0
+            temp_right = 0
+            for constraint in temp_constraints:
+                min_bn = None
+                max_bn = None
+                temp_min = constraint.min_value
+                temp_minb = None
+                if constraint.closed_min == True:
+                    temp_minb = Bracket.LC
+                else:
+                    temp_minb = Bracket.LO
+                temp_max = constraint.max_value
+                temp_maxb = None
+                if constraint.closed_max == True:
+                    temp_maxb = Bracket.RC
+                else:
+                    temp_maxb = Bracket.RO
+                min_bn = BracketNum(temp_min, temp_minb)
+                max_bn = BracketNum(temp_max, temp_maxb)
+                for bn, index in zip(bnlist_dict[temp_timedlabel.label], range(len(bnlist_dict[temp_timedlabel.label]))):
+                    if min_bn == bn:
+                        temp_left = index
+                    if max_bn == bn:
+                        temp_right = index
+            label_begin = temp_timedlabel.label+'_'+temp_left//2
+            label_end = temp_timedlabel.label+'_'+temp_right//2
+    
 def main():
     A = buildRTA("a.json")
     A.show()
@@ -158,24 +283,36 @@ def main():
     print("-------------------------------------------")
     B = DFA(A, "generation")
     B.show()
-    for timed_label in B.timed_alphabet["a"]:
-        print timed_label.get_timedlabel()
+    #for timed_label in B.timed_alphabet["a"]:
+    #    print timed_label.get_timedlabel()
     print("-------------------------------------------")
     B_secret = DFA(A_secret, "receiving")
     B_secret.show()
-    for timed_label in B_secret.timed_alphabet["b"]:
-        print timed_label.get_timedlabel()
+    #for timed_label in B_secret.timed_alphabet["b"]:
+    #    print timed_label.get_timedlabel()
+    print("---------------------------------------------")
     
-    bn1 = BracketNum("1", Bracket.LC)
-    bn2 = BracketNum("1", Bracket.LO)
+    pa1,l1 = alphabet_partition(B.timed_alphabet)
+    pa2,l2 = alphabet_partition(B_secret.timed_alphabet)
+    pa3,l3 = alphabet_partition(alphabet_combine(B.timed_alphabet, pa2))
+    for term in pa3:
+        for timedlabel,index in zip(pa3[term], range(len(pa3[term]))):
+            timedlabel.name = term + '_'+ str(index)
+            print timedlabel.name, timedlabel.get_timedlabel()
+    for term in l3:
+        for bn,index in zip(l3[term],range(len(l3[term]))):
+            print index, bn.getbn()
+    """
+    bn1 = BracketNum("+", Bracket.LC)
+    bn2 = BracketNum("+", Bracket.LO)
+    bn3 = bn1.complement()
+    bn4 = BracketNum("1", Bracket.LO)
+    bn_list = [bn1,bn2,bn3]
     print bn1 < bn2
-    """print rta.name
-    for s in rta.states:
-        print s.name, s.init, s.accept
-    for t in rta.trans:
-        print t.id, t.source, t.label, t.target, t.constraint.guard, t.constraint.min_value, t.constraint.closed_min, t.constraint.max_value, t.constraint.closed_max
-    print rta.initstate_name
-    print rta.accept_names"""
+    print bn1.getbn(), bn2.getbn(), bn3.getbn()
+    print bn4 not in bn_list
+    """
+
 
 if __name__=='__main__':
 	main()          

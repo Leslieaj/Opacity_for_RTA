@@ -46,7 +46,7 @@ class Constraint:
         return int(self.min_value)
     
     def get_max(self):
-        if self.max == '+':
+        if self.max_value == '+':
             closed_max=False
             return MAXVALUE
         else:
