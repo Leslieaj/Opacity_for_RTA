@@ -35,6 +35,12 @@ class Constraint:
         else:
             self.closed_max = False
         self.max_value = max_type[:-1].strip()
+    
+    def __eq__(self, constraint):
+        if self.min_value == constraint.min_value and self.closed_min == constraint.closed_min and self.max_value == constraint.max_value and self.closed_max == constraint.closed_max:
+            return True
+        else:
+            return False
         
     def get_min(self):
         return int(self.min_value)
@@ -115,6 +121,12 @@ def main():
     print("-------------------------------------------")
     A_secret = buildRTA("a_secret.json")
     A_secret.show()
+    
+    c1 = Constraint("[2,3]")
+    c2 = Constraint("[2,3]")
+    c3 = Constraint("[1,3]")
+    c4 = Constraint("[2,3)")
+    print c1==c2, c1==c3, c1==c4
     """print rta.name
     for s in rta.states:
         print s.name, s.init, s.accept

@@ -31,16 +31,18 @@ class DFATran:
 
 class DFA:
     name = ""
-    timed_alphabet = None
+    #timed_alphabet = None
+    timed_alphabet = set()
     states = None
     trans = []
     initstate_name = ""
     accept_names = []
     def __init__(self, automaton=None, flag=None):
         if flag == "generation":
-            self.__rta_to_dfa(automaton)
-    
-    def __rta_to_dfa(self, automaton):
+            self.__rta_to_dfa_g(automaton)
+        if flag == "receiving":
+            self.__rta_to_dfa_r(automaton)
+    def __rta_to_dfa_g(self, automaton):
         temp_alphabet = []
         self.trans = []
         for tran in automaton.trans:
@@ -60,12 +62,32 @@ class DFA:
         for state in self.states:
             state.accept = True
             self.accept_names.append(state.name)
-        self.timed_alphabet = temp_alphabet
+        self.timed_alphabet = alphabet_classify(temp_alphabet, automaton.sigma)
+    
+    def __rta_to_dfa_r(self, automaton):
+        temp_alphabet = []
+        self.trans = []
+        for tran in automaton.trans:
+            label = copy.deepcopy(tran.label)
+            constraint = copy.deepcopy(tran.constraint)
+            timed_label = TimedLabel("",label,[constraint])
+            temp_alphabet += [timed_label]
+            source = tran.source
+            target = tran.target
+            id = tran.id
+            dfa_tran = DFATran(id, source, target, timed_label)
+            self.trans.append(dfa_tran)
+        self.name = "DFA_" + automaton.name
+        self.states = copy.deepcopy(automaton.states)
+        self.initstate_name = automaton.initstate_name
+        self.accept_names = automaton.accept_names
+        self.timed_alphabet = alphabet_classify(temp_alphabet, automaton.sigma)
     
     def show(self):
         print self.name
         for term in self.timed_alphabet:
-            print term.get_timedlabel()
+            for timedlabel in self.timed_alphabet[term]:
+                print timedlabel.get_timedlabel()
         #print self.timed_alphabet.name, self.timed_alphabet.label, self.timed_alphabet.constraint.guard, len(self.timed_alphabet)
         for s in self.states:
             print s.name, s.init, s.accept
@@ -74,6 +96,20 @@ class DFA:
         print self.initstate_name
         print self.accept_names     
 
+def alphabet_classify(timed_alphabet, sigma):
+    temp_set = {}
+    for label in sigma:
+        temp_set[label] = []
+        #label_list = []
+        for timed_label in timed_alphabet:
+            if timed_label.label == label:
+                temp_set[label].append(timed_label)
+    return temp_set  
+
+def alphabet_partition(timed_alphabet):
+    for key in timed_alphabet:
+        timed_labels = timed_alphabet[key]
+        for timed_labels
 def main():
     A = buildRTA("a.json")
     A.show()
@@ -83,9 +119,13 @@ def main():
     print("-------------------------------------------")
     B = DFA(A, "generation")
     B.show()
+    for timed_label in B.timed_alphabet["a"]:
+        print timed_label.get_timedlabel()
     print("-------------------------------------------")
-    B_secret = DFA(A_secret, "generation")
+    B_secret = DFA(A_secret, "receiving")
     B_secret.show()
+    for timed_label in B_secret.timed_alphabet["b"]:
+        print timed_label.get_timedlabel()
     """print rta.name
     for s in rta.states:
         print s.name, s.init, s.accept
