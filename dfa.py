@@ -299,7 +299,8 @@ class RefinedDFA:
             if flag == False:
                 temp_trans.append([tran])
                 flag = True
-        print len(temp_trans)
+        #print len(temp_trans)
+        combined_trans = []
         for tran_list in temp_trans:
             temp_timedlabel = []
             temp_source = tran_list[0].source
@@ -308,8 +309,8 @@ class RefinedDFA:
             for tran in tran_list:
                 temp_timedlabel += tran.timedlabel
             dfa_tran = DFATran(temp_id, temp_source, temp_target, temp_timedlabel)
-            temp_trans.append(dfa_tran)
-        self.trans = temp_trans
+            combined_trans.append(dfa_tran)
+        self.trans = combined_trans
                 
     def show(self):
         print self.name
@@ -357,6 +358,8 @@ def main():
     B_refined.show()
     print("--------------------------------------------")
     B_s_refined = RefinedDFA(B_secret, pa3, l3)
+    B_s_refined.show()
+    B_s_refined.combine_trans()
     B_s_refined.show()
     
     """
