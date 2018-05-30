@@ -370,10 +370,12 @@ def complementRDFA(rdfa):
         else:
             state.accept = False
     timedlabels_name = []
+    source_set = set()
     for term in rdfa.timed_alphabet:
         for timedlabel in rdfa.timed_alphabet[term]:
             timedlabels_name.append(timedlabel.name)
     for tran in rdfa.trans:
+        source_set.add(tran.source)
         temp_timedlabel = tran.timedlabel
         new_tran_timedlabel = []
         for label_name in timedlabels_name:
@@ -386,6 +388,11 @@ def complementRDFA(rdfa):
     if flag == True:
         temp_states.append(new_state)
         temp_accepts.append(new_state.name)
+    noout_state = []
+    for state in temp_states:
+        if state.name not in source_set:
+            new_tran = DFATran(len(temp_trans), state.name, new_state.name, timedlabels_name)
+            temp_trans.append(new_tran)
     return CRDFA('C_'+rdfa.name, temp_alphabet,temp_states,temp_trans,temp_initstate,temp_accepts)
 
 def main():
