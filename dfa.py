@@ -395,6 +395,62 @@ def complementRDFA(rdfa):
             temp_trans.append(new_tran)
     return CRDFA('C_'+rdfa.name, temp_alphabet,temp_states,temp_trans,temp_initstate,temp_accepts)
 
+def productRDFA(rdfa1, rdfa2):
+    temp_states = []
+    statenames = []
+    reach_states = []
+    final_states = []
+    temp_trans = []
+    temp_initname = ""
+    temp_accept_names = []
+    temp_alphabet = rdfa1.timed_alphabet
+    for state1 in rdfa1.states:
+        for state2 in rdfa2.states:
+            new_state_name = state1.name + '_' + state2.name
+            statenames.append(new_state_name)
+            new_state_init = False
+            new_state_accept = False
+            if state1.init == True and state2.init == True:
+                new_state_init = True
+            if state1.accept == True and state2.accept == True:
+                new_state_accept = True
+            new_state = State(new_state_name, new_state_init, new_state_accept)
+            temp_states.append(new_state)
+            if new_state_init == True:
+                reach_states.append(new_state)
+    while len(reach_states) > 0:
+        rstate = reach_states.pop(0)
+        statename1, statename2 = rstate.name.split('_')
+        for tran1 in rdfa1.trans:
+            if tran1.source == statename1:
+                target1 = tran1.target
+                label1_list = tran1.timedlabel
+                for tran2 in rdfa2.trans:
+                    if tran2.source == statename2:
+                        common_labels = []
+                        target2 = tran2.target
+                        label2_list = tran2.timedlabel
+                        for label1 in label1_list:
+                            for label2 in label2_list:
+                                if label1 == label2:
+                                    common_labels.append(label1)
+                        targetname = target1+'_'+target2
+                        if len(common_labels)>0:
+                            for state in temp_states:
+                                if state.name == targetname:
+                                    if state not in reach_states:
+                                        reach_states.append(state)
+                            new_tran = DFATran(len(temp_trans), rstate.name, targetname, common_labels)
+                            temp_trans.append(new_tran)
+        final_states.append(rstate)
+    for state in final_states:
+        if state.init == True:
+            temp_initstate = state.name
+        if state.accept == True:
+            temp_accept_names.append(state.name)
+        #print state.name, state.init, state.accept
+    return CRDFA("P_"+rdfa1.name+'-'+rdfa2.name, temp_alphabet, final_states, temp_trans, temp_initstate, temp_accept_names)
+
 def main():
     A = buildRTA("a.json")
     A.show()
@@ -434,6 +490,9 @@ def main():
     print("--------------------------------------------")
     B_s_C_refined = complementRDFA(B_s_refined)
     B_s_C_refined.show()
+    print("--------------------------------------------")
+    product = productRDFA(B_refined, B_s_C_refined)
+    product.show()
     """
     bn1 = BracketNum("+", Bracket.LC)
     bn2 = BracketNum("+", Bracket.LO)
