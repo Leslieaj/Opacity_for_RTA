@@ -325,6 +325,69 @@ class RefinedDFA:
             print t.id, t.source, t.timedlabel, t.target
         print self.initstate_name
         print self.accept_names 
+
+class CRDFA:
+    name = ""
+    timed_alphabet = {}
+    states = None
+    trans = []
+    initstate_name = ""
+    accept_names = []
+    def __init__(self, name="", timed_alphabet={}, states=None, trans=[], initstate_name="", accept_names=[]):
+        self.name = name
+        self.timed_alphabet = timed_alphabet
+        self.states = states
+        self.trans = trans
+        self.initstate_name = initstate_name
+        self.accept_names = accept_names
+    def show(self):
+        print self.name
+        for term in self.timed_alphabet:
+            for timedlabel in self.timed_alphabet[term]:
+                print timedlabel.name, timedlabel.get_timedlabel()
+        #print self.timed_alphabet.name, self.timed_alphabet.label, self.timed_alphabet.constraint.guard, len(self.timed_alphabet)
+        for s in self.states:
+            print s.name, s.init, s.accept
+        #print self.trans
+        for t in self.trans:
+            print t.id, t.source, t.timedlabel, t.target
+        print self.initstate_name
+        print self.accept_names
+ 
+def complementRDFA(rdfa):
+    states_num = len(rdfa.states)
+    temp_states = copy.deepcopy(rdfa.states)
+    new_state = State(str(states_num+1), False, True)
+    flag = False
+    temp_trans = copy.deepcopy(rdfa.trans)
+    temp_alphabet = copy.deepcopy(rdfa.timed_alphabet)
+    temp_initstate = copy.deepcopy(rdfa.initstate_name)
+    temp_accepts = []
+    for state in temp_states:
+        if state.accept == False:
+            state.accept = True
+            temp_accepts.append(state.name)
+        else:
+            state.accept = False
+    timedlabels_name = []
+    for term in rdfa.timed_alphabet:
+        for timedlabel in rdfa.timed_alphabet[term]:
+            timedlabels_name.append(timedlabel.name)
+    for tran in rdfa.trans:
+        temp_timedlabel = tran.timedlabel
+        new_tran_timedlabel = []
+        for label_name in timedlabels_name:
+            if label_name not in temp_timedlabel:
+                new_tran_timedlabel.append(label_name)
+        if len(new_tran_timedlabel)>0:
+            new_tran = DFATran(len(temp_trans), tran.source, new_state.name, new_tran_timedlabel)
+            temp_trans.append(new_tran)
+            flag = True
+    if flag == True:
+        temp_states.append(new_state)
+        temp_accepts.append(new_state.name)
+    return CRDFA('C_'+rdfa.name, temp_alphabet,temp_states,temp_trans,temp_initstate,temp_accepts)
+
 def main():
     A = buildRTA("a.json")
     A.show()
@@ -361,7 +424,9 @@ def main():
     B_s_refined.show()
     B_s_refined.combine_trans()
     B_s_refined.show()
-    
+    print("--------------------------------------------")
+    B_s_C_refined = complementRDFA(B_s_refined)
+    B_s_C_refined.show()
     """
     bn1 = BracketNum("+", Bracket.LC)
     bn2 = BracketNum("+", Bracket.LO)
