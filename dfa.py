@@ -490,7 +490,8 @@ def clean_deadstates(dfa):
         return cleandfa
 
 class SimpleDFA:
-    def __init__(self, states, timed_alphabet, trans, initstates, accept):
+    def __init__(self, name, states, timed_alphabet, trans, initstates, accept):
+        self.name = name
         self.states = states
         self.timed_alphabet = timed_alphabet
         self.states = states
@@ -500,7 +501,7 @@ class SimpleDFA:
     def show(self):
         #print self.name
         for term in self.timed_alphabet:
-            print len(self.timed_alphabet[term])
+            #print len(self.timed_alphabet[term])
             for timedlabel in self.timed_alphabet[term]:
                 print timedlabel.get_timedlabel()
         #print self.timed_alphabet.name, self.timed_alphabet.label, self.timed_alphabet.constraint.guard, len(self.timed_alphabet)
@@ -554,7 +555,7 @@ def get_simpledfa(dfa):
     #print len(timed_alphabet)
     initstates = dfa.initstate_name
     accept = dfa.accept_names
-    return SimpleDFA(states, timed_alphabet, trans, initstates, accept)
+    return SimpleDFA("", states, timed_alphabet, trans, initstates, accept)
 
 def main():
     A = buildRTA("a.json")
