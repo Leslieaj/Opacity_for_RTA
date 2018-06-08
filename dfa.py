@@ -78,6 +78,11 @@ class TimedLabel:
             temp = temp + constraint.get_constraint() + 'U'
         constraint_str = temp[:-1]
         return '(' + self.label + ',' + constraint_str + ')'
+    def __eq__(self, timedlabel):
+        if self.label == timedlabel.label and self.get_timedlabel() == timedlabel.get_timedlabel():
+            return True
+        else:
+            return False
 
 class DFATran:
     id = None
@@ -451,6 +456,106 @@ def productRDFA(rdfa1, rdfa2):
         #print state.name, state.init, state.accept
     return CRDFA("P_"+rdfa1.name+'-'+rdfa2.name, temp_alphabet, final_states, temp_trans, temp_initstate, temp_accept_names)
 
+def has_deadstates(dfa):
+    source_states = []
+    for tran in dfa.trans:
+        if tran.source not in source_states:
+            source_states.append(tran.source)
+    dead_states = []
+    for s in dfa.states:
+        if s.name not in source_states:
+            if s.accept == False:
+                dead_states.append(s)
+    return len(dead_states)
+          
+def clean_deadstates(dfa):
+    cleandfa = copy.deepcopy(dfa)
+    source_states = []
+    for tran in cleandfa.trans:
+        if tran.source not in source_states:
+            source_states.append(tran.source)
+    dead_states = []
+    for s in cleandfa.states:
+        if s.name not in source_states:
+            if s.accept == False:
+                dead_states.append(s)
+                cleandfa.states.remove(s)
+    dead_statesname = [s.name for s in dead_states]
+    for tran in cleandfa.trans:
+        if tran.target in dead_statesname:
+            cleandfa.trans.remove(tran)
+    if has_deadstates(cleandfa) > 0:
+        clean_deadstates(cleandfa)
+    else:
+        return cleandfa
+
+class SimpleDFA:
+    def __init__(self, states, timed_alphabet, trans, initstates, accept):
+        self.states = states
+        self.timed_alphabet = timed_alphabet
+        self.states = states
+        self.trans = trans
+        self.initstate_name = initstates
+        self.accept_names = accept
+    def show(self):
+        #print self.name
+        for term in self.timed_alphabet:
+            print len(self.timed_alphabet[term])
+            for timedlabel in self.timed_alphabet[term]:
+                print timedlabel.get_timedlabel()
+        #print self.timed_alphabet.name, self.timed_alphabet.label, self.timed_alphabet.constraint.guard, len(self.timed_alphabet)
+        for s in self.states:
+            print s.name, s.init, s.accept
+        for t in self.trans:
+            print t.id, t.source, t.timedlabel.get_timedlabel(), t.target
+        print self.initstate_name
+        print self.accept_names   
+
+def add_partitions(p1, p2):
+    left_p1, right_p1 = p1.guard.split(',')
+    left_p2, right_p2 = p2.guard.split(',')
+    if p1.max_value == p2.min_value:
+        return Constraint(left_p1+','+right_p2)
+    if p2.max_value == p1.min_value:
+        return Constraint(left_p2+','+right_p1)
+    return p1
+
+def refinetrans(dfa):
+    trans = []
+    temp_alphabet = []
+    sigma = []
+    for tran,index in zip(dfa.trans,range(0,len(dfa.trans))):
+        if len(tran.timedlabel) >= 1:
+            label,_ = tran.timedlabel[0].split('_')
+            if label not in sigma:
+                sigma.append(label)
+            partitions = []
+            new_tran_constraint = None
+            for temp in dfa.timed_alphabet[label]:
+                if temp.name in tran.timedlabel:
+                    partitions.append(copy.deepcopy(temp))
+            if len(partitions) == 1:
+                new_tran_constraint = partitions[0].constraints[0]
+            if len(partitions) > 1:
+                new_tran_constraint = partitions[0].constraints[0]
+                for i in range(1, len(partitions)):
+                    new_tran_constraint = add_partitions(new_tran_constraint, partitions[i].constraints[0])
+            new_timedlabel = TimedLabel("", label, [new_tran_constraint])
+            if new_timedlabel not in temp_alphabet:
+                temp_alphabet.append(new_timedlabel)
+            new_tran = DFATran(index, tran.source, tran.target, new_timedlabel)
+            trans.append(new_tran)
+    timed_alphabet = alphabet_classify(temp_alphabet,sigma)
+    return trans, timed_alphabet
+
+def get_simpledfa(dfa):
+    states = copy.deepcopy(dfa.states)
+    trans, timed_alphabet = refinetrans(dfa)
+    #print len(timed_alphabet)
+    initstates = dfa.initstate_name
+    accept = dfa.accept_names
+    return SimpleDFA(states, timed_alphabet, trans, initstates, accept)
+
 def main():
     A = buildRTA("a.json")
     A.show()
@@ -480,20 +585,30 @@ def main():
     print("--------------------------------------------")
     B_refined = RefinedDFA(B, pa3, l3)
     B_refined.show()
-    B_refined.combine_trans()
-    B_refined.show()
+    #B_refined.combine_trans()
+    #B_refined.show()
     print("--------------------------------------------")
     B_s_refined = RefinedDFA(B_secret, pa3, l3)
     B_s_refined.show()
-    B_s_refined.combine_trans()
-    B_s_refined.show()
+    #B_s_refined.combine_trans()
+    #B_s_refined.show()
     print("--------------------------------------------")
     B_s_C_refined = complementRDFA(B_s_refined)
     B_s_C_refined.show()
     print("--------------------------------------------")
     product = productRDFA(B_refined, B_s_C_refined)
     product.show()
+    print("--------------------------------------------")
+    productclean = clean_deadstates(product)
+    productclean.show()
+    print("--------------------------------------------")
+    simpledfa = get_simpledfa(productclean)
+    simpledfa.show()
     """
+    temp_trans = refinetrans(productclean)
+    for tran in temp_trans:
+        print tran.id, tran.source, tran.timedlabel.get_timedlabel(), tran.target
+    
     bn1 = BracketNum("+", Bracket.LC)
     bn2 = BracketNum("+", Bracket.LO)
     bn3 = bn1.complement()
