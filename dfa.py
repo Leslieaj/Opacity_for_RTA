@@ -361,6 +361,7 @@ class CRDFA:
  
 def complementRDFA(rdfa):
     states_num = len(rdfa.states)
+    print states_num
     temp_states = copy.deepcopy(rdfa.states)
     new_state = State(str(states_num+1), False, True)
     flag = False
@@ -379,6 +380,29 @@ def complementRDFA(rdfa):
     for term in rdfa.timed_alphabet:
         for timedlabel in rdfa.timed_alphabet[term]:
             timedlabels_name.append(timedlabel.name)
+    for s in temp_states:
+        #print s.name
+        source_set.add(s.name)
+        s_trans = []
+        for tran in rdfa.trans:
+            if s.name == tran.source:
+                s_trans.append(tran)
+        temp_timedlabel = []
+        for tran in s_trans:
+            for tl in tran.timedlabel:
+                if tl not in temp_timedlabel:
+                    temp_timedlabel.append(tl)
+        new_tran_timedlabel = []
+        for label_name in timedlabels_name:
+            if label_name not in temp_timedlabel:
+                new_tran_timedlabel.append(label_name)
+        if len(new_tran_timedlabel)>0:
+            print s.name, new_state.name
+            new_tran = DFATran(len(temp_trans), s.name, new_state.name, new_tran_timedlabel)
+            temp_trans.append(new_tran)
+            print len(temp_trans)
+            flag = True
+    """
     for tran in rdfa.trans:
         source_set.add(tran.source)
         temp_timedlabel = tran.timedlabel
@@ -390,6 +414,7 @@ def complementRDFA(rdfa):
             new_tran = DFATran(len(temp_trans), tran.source, new_state.name, new_tran_timedlabel)
             temp_trans.append(new_tran)
             flag = True
+    """
     if flag == True:
         temp_states.append(new_state)
         temp_accepts.append(new_state.name)

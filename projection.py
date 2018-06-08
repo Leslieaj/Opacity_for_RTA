@@ -1,5 +1,5 @@
 #projection
-
+import sys
 from rta import *
 from dfa import *
 
@@ -163,15 +163,24 @@ def rename_states(bns):
     for tran in bns.trans:
         tran.source = str(state_names.index(tran.source)+1)
         tran.target = str(state_names.index(tran.target)+1)
+    bns.initstate_name = str(state_names.index(bns.initstate_name)+1)
+    for sn in bns.accept_names:
+        bns.accept_names[state_names.index(sn)] = str(state_names.index(sn)+1)
     for s in bns.states:
-        s.name = str(bns.states.index(s))
+        s.name = str(state_names.index(s.name)+1)
     return bns
 
 def main():
-    A = buildRTA("a.json")
+    para = sys.argv
+    file1 = str(para[1])
+    file2 = str(para[2])
+    observable = ['a']
+    #A = buildRTA("a.json")
+    A = buildRTA(file1)
     A.show()
     print("-------------------------------------------")
-    A_secret = buildRTA("a_secret.json")
+    #A_secret = buildRTA("a_secret.json")
+    A_secret = buildRTA(file2)
     A_secret.show()
     print("-------------------------------------------")
     B = DFA(A, "generation")
@@ -216,7 +225,6 @@ def main():
     Bns_simpledfa = get_simpledfa(productclean)
     Bns_simpledfa.show()
     print("--------------------------------------------")
-    observable = ['a']
     B_tau = buildBTau(B, observable)
     B_tau.show()
     print("--------------------------------------------")
@@ -250,23 +258,24 @@ def main():
     projection_B.show()
     print("--------------------------------------------")
     projection_Bns.show()
-    print("--------------------------------------------")
+    print("************************************************")
     projection_Bns = rename_states(projection_Bns)
     projection_Bns.show()
-    print("--------------------------------------------")
+    print("************************************************")
     pa1,l1 = alphabet_partition(projection_B.timed_alphabet)
     pa2,l2 = alphabet_partition(projection_Bns.timed_alphabet)
     pa3,l3 = alphabet_partition(alphabet_combine(projection_B.timed_alphabet, pa2))
     projection_B_refined = RefinedDFA(projection_B, pa3, l3)
     projection_B_refined.show()
-    print("--------------------------------------------")
+    print("************************************************")
     projection_Bns_refined = RefinedDFA(projection_Bns, pa3, l3)
     projection_Bns_refined.show()
-    print("--------------------------------------------")
+    print("************************************************")
     projection_Bns_C_refined = complementRDFA(projection_Bns_refined)
     projection_Bns_C_refined.show()
-    print("--------------------------------------------")
+    print("************************************************")
     new_product = productRDFA(projection_B_refined, projection_Bns_C_refined)
     new_product.show()
+
 if __name__=='__main__':
 	main()    
