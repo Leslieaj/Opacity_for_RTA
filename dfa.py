@@ -361,7 +361,7 @@ class CRDFA:
  
 def complementRDFA(rdfa):
     states_num = len(rdfa.states)
-    print states_num
+    #print states_num
     temp_states = copy.deepcopy(rdfa.states)
     new_state = State(str(states_num+1), False, True)
     flag = False
@@ -397,10 +397,10 @@ def complementRDFA(rdfa):
             if label_name not in temp_timedlabel:
                 new_tran_timedlabel.append(label_name)
         if len(new_tran_timedlabel)>0:
-            print s.name, new_state.name
+            #print s.name, new_state.name
             new_tran = DFATran(len(temp_trans), s.name, new_state.name, new_tran_timedlabel)
             temp_trans.append(new_tran)
-            print len(temp_trans)
+            #print len(temp_trans)
             flag = True
     """
     for tran in rdfa.trans:
