@@ -68,8 +68,16 @@ def delete_unobser(simpledfa, observable):
     return simpledfa
 
 def add_constraints(c1, c2):
-    temp_min_value = str(int(c1.min_value) + int(c2.min_value))
-    temp_max_value = str(int(c1.max_value) + int(c2.max_value))
+    temp_min_value = ""
+    temp_max_value = ""
+    if c1.min_value == '+' or c2.min_value == '+':
+        temp_min_value = '+'
+    else:
+        temp_min_value = str(int(c1.min_value) + int(c2.min_value))
+    if c1.max_value == '+' or c2.max_value == '+':
+        temp_max_value = '+'
+    else:
+        temp_max_value = str(int(c1.max_value) + int(c2.max_value))
     temp_closed_min = '('
     temp_closed_max = ')'
     if c1.closed_min == True and c2.closed_min == True:
