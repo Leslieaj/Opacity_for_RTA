@@ -30,6 +30,36 @@ def lcm(a, b):
     #assert a > 0 and b > 0,'parameters must be greater than 0.'  
     return int(a * b / gcd(a, b))
 
+def intersect_constraint(c1, c2):
+    min_bn1 = None
+    max_bn1 = None
+    if c1.closed_min == True:
+        min_bn1 = BracketNum(c1.min_value, Bracket.LC)
+    else:
+        min_bn1 = BracketNum(c1.min_value, Bracket.LO)
+    if c1.closed_max == True:
+        max_bn1 = BracketNum(c1.max_value, Bracket.RC)
+    else:
+        max_bn1 = BracketNum(c1.max_value, Bracket.RO)
+    min_bn2 = None
+    max_bn2 = None
+    if c2.closed_min == True:
+        min_bn2 = BracketNum(c2.min_value, Bracket.LC)
+    else:
+        min_bn2 = BracketNum(c2.min_value, Bracket.LO)
+    if c2.closed_max == True:
+        max_bn2 = BracketNum(c2.max_value, Bracket.RC)
+    else:
+        max_bn2 = BracketNum(c2.max_value, Bracket.RO)
+    bnlist = [min_bn1, max_bn1, min_bn2, max_bn2]
+    bnlist.sort()
+    left_bn = bnlist[1]
+    right_bn = bnlist[2]
+    if left_bn in [min_bn1, min_bn2] and right in [max_bn1, max_bn2]:
+        return Constraint(left_bn.getbn()+','+right_bn.getbn()), True
+    else:
+        return Constraint("(0,0)"), False
+
 def unintersect_intervals(uintervals):
     unintersect = []
     floor_bn = BracketNum('0',Bracket.LC)
